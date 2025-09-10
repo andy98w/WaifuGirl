@@ -18,7 +18,7 @@ import {
   PuzzleState,
   getLevelGridDimensions
 } from '@/utils/puzzleLogic';
-import { MusicTrack } from '@/utils/musicManager';
+import { MusicTrack } from '@/components/MusicPlayer';
 import { Level, levels } from '@/utils/levels';
 import { iapManager } from '@/utils/inAppPurchase';
 
@@ -57,7 +57,6 @@ export default function App() {
   const [puzzleState, setPuzzleState] = useState<PuzzleState | null>(null);
   const [gameState, setGameState] = useState<'playing' | 'completed'>('playing');
   const [levelData, setLevelData] = useState(levels);
-  const [isTestMode, setIsTestMode] = useState(false);
   const [levelCompletionStates, setLevelCompletionStates] = useState<{[key: number]: {gameState: 'playing' | 'completed', puzzleState: PuzzleState | null}}>({});
   const [imageLoaded, setImageLoaded] = useState(false);
   const [hasPurchasedPremium, setHasPurchasedPremium] = useState(false);
@@ -76,7 +75,9 @@ export default function App() {
           setHasPurchasedPremium(true);
         }
       } catch (error) {
-        console.error('Failed to initialize IAP:', error);
+        if (__DEV__) {
+          console.error('Failed to initialize IAP:', error);
+        }
       }
     };
     
@@ -190,15 +191,14 @@ export default function App() {
     setLevelData(updatedLevels);
   };
 
-  const handleLevelSelect = async (level: Level, testMode = false) => {
-    // Check if level requires premium purchase (unless in test mode or dev mode)
-    if (!testMode && level.requiresPurchase && !hasPurchasedPremium && !DEV_MODE_BYPASS_IAP) {
+  const handleLevelSelect = async (level: Level) => {
+    // Check if level requires premium purchase (dev mode bypassed since IAP disabled)
+    if (level.requiresPurchase && !hasPurchasedPremium && !DEV_MODE_BYPASS_IAP) {
       setShowPremiumModal(true);
       return;
     }
     
     setSelectedLevel(level);
-    setIsTestMode(false); // Never set test mode, always play normally
     setImageLoaded(false);
     setCurrentScreen('loading');
     
@@ -221,7 +221,6 @@ export default function App() {
     setSelectedLevel(null);
     setPuzzleState(null);
     setGameState('playing');
-    setIsTestMode(false);
   };
 
   const handleNextLevel = () => {

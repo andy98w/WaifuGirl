@@ -138,14 +138,18 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
       
       await Share.share(shareOptions);
     } catch (error) {
-      console.error('Error sharing:', error);
+      if (__DEV__) {
+        console.error('Error sharing:', error);
+      }
       // Fallback to text-only sharing if image sharing fails
       try {
         await Share.share({
           message: `I just completed Level ${levelId || ''} in Waifu Girl puzzle game in ${puzzleState.moves} moves! 🧩✨`,
         });
       } catch (fallbackError) {
-        console.error('Fallback sharing also failed:', fallbackError);
+        if (__DEV__) {
+          console.error('Fallback sharing also failed:', fallbackError);
+        }
       }
     }
   };

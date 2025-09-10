@@ -12,27 +12,25 @@ const CARD_MARGIN = 8;
 const CARD_SIZE = (screenWidth - (CARD_MARGIN * (COLUMNS + 1))) / COLUMNS;
 
 interface HomeScreenProps {
-  onLevelSelect: (level: Level, testMode?: boolean) => void;
+  onLevelSelect: (level: Level) => void;
   levels: Level[];
   hasPurchasedPremium: boolean;
   onPurchaseRestored?: () => void;
 }
 
 export default function HomeScreen({ onLevelSelect, levels, hasPurchasedPremium, onPurchaseRestored }: HomeScreenProps) {
-  const [testMode, setTestMode] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
 
   const handleLevelPress = (level: Level) => {
-    // In test mode, allow access to any level
-    // In regular mode, only allow access to unlocked levels
-    if (testMode || level.unlocked) {
-      onLevelSelect(level, testMode);
+    // Only allow access to unlocked levels
+    if (level.unlocked) {
+      onLevelSelect(level);
     }
   };
 
   const renderLevel = ({ item }: { item: Level }) => {
-    const isAccessible = testMode || (item.unlocked && (!item.requiresPurchase || hasPurchasedPremium));
-    const isPremiumLocked = item.requiresPurchase && !hasPurchasedPremium && !testMode;
+    const isAccessible = item.unlocked && (!item.requiresPurchase || hasPurchasedPremium);
+    const isPremiumLocked = item.requiresPurchase && !hasPurchasedPremium;
     
     return (
       <Pressable
@@ -90,21 +88,6 @@ export default function HomeScreen({ onLevelSelect, levels, hasPurchasedPremium,
         columnWrapperStyle={styles.row}
       />
 
-      <View style={styles.footer}>
-        <Pressable 
-          style={[styles.testModeButton, testMode && styles.testModeActive]} 
-          onPress={() => setTestMode(!testMode)}
-        >
-          <Ionicons 
-            name={testMode ? "eye" : "eye-off"} 
-            size={24} 
-            color={testMode ? "#4CAF50" : "#666"} 
-          />
-          <Text style={[styles.testModeText, testMode && styles.testModeTextActive]}>
-            Test Mode
-          </Text>
-        </Pressable>
-      </View>
 
       <SettingsModal
         visible={showSettings}
@@ -195,32 +178,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 10,
     fontWeight: 'bold',
-  },
-  testModeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  testModeActive: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-  },
-  testModeText: {
-    color: '#666',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  testModeTextActive: {
-    color: '#4CAF50',
-  },
-  footer: {
-    alignItems: 'center',
-    paddingVertical: 20,
-    paddingHorizontal: 20,
-    paddingBottom: 40,
   },
   previewImage: {
     width: '100%',

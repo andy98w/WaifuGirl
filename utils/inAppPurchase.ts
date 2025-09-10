@@ -1,95 +1,77 @@
 import { Platform } from 'react-native';
 
-// Conditionally import IAP only if available
-let IAP: any = null;
-try {
-  IAP = require('react-native-iap');
-} catch (error) {
-  console.log('react-native-iap not available - running in Expo Go or development mode');
-}
+// IAP is currently simulated - no native dependencies
+const StoreKit: any = null;
 
 export const PRODUCT_IDS = {
   PREMIUM_LEVELS: 'com.andyw98.waifugirl.premium_levels',
 };
 
 class InAppPurchaseManager {
-  private purchaseUpdateSubscription: any;
-  private purchaseErrorSubscription: any;
   private products: any[] = [];
   private isInitialized: boolean = false;
-  private purchaseCallback: ((success: boolean, productId?: string) => void) | null = null;
-  private isDevelopment: boolean = !IAP;
+  private isDevelopment: boolean = true; // Always development mode - no native IAP
 
   async initialize() {
     try {
       if (this.isDevelopment) {
-        console.log('Running in development mode - IAP simulated');
+        if (__DEV__) {
+          console.log('Running in development mode - IAP simulated');
+        }
         this.isInitialized = true;
         return;
       }
 
       if (Platform.OS !== 'ios') {
-        console.log('IAP is only supported on iOS');
+        if (__DEV__) {
+          console.log('StoreKit is only supported on iOS');
+        }
         return;
       }
 
-      const connectionResult = await IAP.initConnection();
-      console.log('IAP Connection initialized:', connectionResult);
-      
-      const productIds = [
-        PRODUCT_IDS.PREMIUM_LEVELS,
-      ];
-      
-      console.log('Fetching products:', productIds);
-      this.products = await IAP.getProducts({ skus: productIds });
-      console.log('Products fetched:', this.products.map(p => ({
-        productId: p.productId,
-        price: p.localizedPrice,
-        title: p.title,
-        description: p.description
-      })));
-      
-      // Keep for IAP debugging
       if (__DEV__) {
-        console.log('=== SANDBOX IAP DEBUG ===');
-        console.log('Products available:', this.products.length);
-        this.products.forEach(p => {
-          console.log(`- ${p.productId}: ${p.localizedPrice}`);
-        });
-        console.log('========================');
+        console.log('StoreKit initializing...');
       }
       
-      if (this.products.length === 0) {
+      const productIds = [PRODUCT_IDS.PREMIUM_LEVELS];
+      
+      if (__DEV__) {
+        console.log('Fetching products:', productIds);
+      }
+      
+      this.products = await StoreKit.getProductsAsync(productIds);
+      
+      if (__DEV__) {
+        console.log('Products fetched:', this.products.map(p => ({
+          productId: p.productIdentifier,
+          price: p.price,
+          localizedPrice: p.priceLocale
+        })));
+      }
+      
+      if (this.products.length === 0 && __DEV__) {
         console.warn('No products available from App Store. Check product IDs and App Store Connect configuration.');
       }
       
-      this.purchaseUpdateSubscription = IAP.purchaseUpdatedListener(async (purchase: any) => {
-        await this.handlePurchaseUpdate(purchase);
-      });
-
-      this.purchaseErrorSubscription = IAP.purchaseErrorListener((error: any) => {
-        this.handlePurchaseError(error);
-      });
-      
-      await this.restorePurchases();
-      
       this.isInitialized = true;
-      console.log('IAP Manager initialized successfully');
+      if (__DEV__) {
+        console.log('StoreKit Manager initialized successfully');
+      }
       
     } catch (error: any) {
-      console.error('Failed to initialize IAP:', error);
-      console.error('Error details:', error.message, error.code);
+      if (__DEV__) {
+        console.error('Failed to initialize StoreKit:', error);
+        console.error('Error details:', error.message);
+      }
       this.isInitialized = false;
       // Don't throw error to allow app to continue without IAP
     }
   }
 
   async cleanup() {
-    if (this.purchaseUpdateSubscription) {
-      this.purchaseUpdateSubscription.remove();
-    }
-    if (this.purchaseErrorSubscription) {
-      this.purchaseErrorSubscription.remove();
+    // StoreKit doesn't require explicit cleanup like react-native-iap
+    if (__DEV__) {
+      console.log('StoreKit cleanup completed');
     }
   }
 
@@ -98,9 +80,13 @@ class InAppPurchaseManager {
       try {
         if (this.isDevelopment) {
           // Simulate purchase in development
-          console.log('Development mode: Simulating premium purchase');
+          if (__DEV__) {
+            console.log('Development mode: Simulating premium purchase');
+          }
           setTimeout(() => {
-            console.log('Development mode: Purchase simulated as successful');
+            if (__DEV__) {
+              console.log('Development mode: Purchase simulated as successful');
+            }
             resolve(true);
           }, 1000);
           return;
@@ -117,88 +103,44 @@ class InAppPurchaseManager {
           }
         }
         
-        const product = this.products.find(p => p.productId === PRODUCT_IDS.PREMIUM_LEVELS);
+        const product = this.products.find(p => p.productIdentifier === PRODUCT_IDS.PREMIUM_LEVELS);
         if (!product) {
           throw new Error('Premium levels not available in App Store');
         }
         
-        this.purchaseCallback = (success, productId) => {
-          if (productId === PRODUCT_IDS.PREMIUM_LEVELS) {
-            resolve(success);
-            this.purchaseCallback = null;
-          }
-        };
+        if (__DEV__) {
+          console.log('Requesting purchase for:', PRODUCT_IDS.PREMIUM_LEVELS);
+        }
         
-        console.log('Requesting purchase for:', PRODUCT_IDS.PREMIUM_LEVELS);
-        await IAP.requestPurchase({
-          sku: PRODUCT_IDS.PREMIUM_LEVELS,
-          andDangerouslyFinishTransactionAutomaticallyIOS: false,
-        });
+        const result = await StoreKit.purchaseItemAsync(PRODUCT_IDS.PREMIUM_LEVELS);
+        
+        if (__DEV__) {
+          console.log('Purchase completed successfully:', result);
+        }
+        
+        resolve(result?.responseCode === StoreKit.IAPResponseCode.OK);
         
       } catch (error: any) {
-        console.error('Premium levels purchase failed:', error);
-        console.error('Error code:', error.code, 'Message:', error.message);
-        
-        if (error.code === 'E_USER_CANCELLED') {
-          console.log('User cancelled the purchase');
+        if (__DEV__) {
+          console.error('Premium levels purchase failed:', error);
+          console.error('Error details:', error.message);
+          
+          if (error.code === 'UserCancel') {
+            console.log('User cancelled the purchase');
+          }
         }
         
         resolve(false);
-        this.purchaseCallback = null;
       }
     });
-  }
-
-  private async handlePurchaseUpdate(purchase: any) {
-    try {
-      console.log('Purchase update received:', purchase.productId, purchase.transactionId);
-      
-      const receipt = purchase.transactionReceipt;
-      if (!receipt) {
-        throw new Error('No receipt found');
-      }
-      
-      console.log('Finishing transaction for:', purchase.productId);
-      await IAP.finishTransaction({
-        purchase,
-        isConsumable: false,
-      });
-      
-      if (Platform.OS === 'ios') {
-        await IAP.clearTransactionIOS();
-      }
-      
-      console.log('Purchase completed successfully:', purchase.productId);
-      
-      if (this.purchaseCallback) {
-        this.purchaseCallback(true, purchase.productId);
-      }
-      
-    } catch (error: any) {
-      console.error('Error processing purchase:', error);
-      console.error('Error details:', error.message);
-      
-      if (this.purchaseCallback) {
-        this.purchaseCallback(false, purchase.productId);
-      }
-    }
-  }
-
-  private handlePurchaseError(error: any) {
-    console.error('Purchase error:', error.message);
-    console.error('Error code:', error.code);
-    console.error('Full error:', JSON.stringify(error, null, 2));
-    
-    if (this.purchaseCallback) {
-      this.purchaseCallback(false);
-      this.purchaseCallback = null;
-    }
   }
   
   async restorePurchases() {
     try {
       if (this.isDevelopment) {
-        console.log('Development mode: No purchases to restore');
+        if (__DEV__) {
+          console.log('Development mode: No purchases to restore');
+        }
         return { hasPremium: false, purchases: [] };
       }
 
@@ -206,23 +148,34 @@ class InAppPurchaseManager {
         return { hasPremium: false, purchases: [] };
       }
       
-      console.log('Restoring purchases...');
-      const purchases = await IAP.getAvailablePurchases();
-      console.log('Restored purchases:', purchases.map(p => p.productId));
+      if (__DEV__) {
+        console.log('Restoring purchases...');
+      }
+      
+      const purchases = await StoreKit.getReceiptAsync();
+      
+      if (__DEV__) {
+        console.log('Restored purchases:', purchases);
+      }
       
       // Check if user has purchased premium levels
-      const hasPremium = purchases.some(p => p.productId === PRODUCT_IDS.PREMIUM_LEVELS);
-      return { hasPremium, purchases };
+      // Note: StoreKit receipt validation is more complex than this,
+      // but this is a simplified version for demo purposes
+      const hasPremium = purchases && purchases.length > 0;
+      
+      return { hasPremium, purchases: purchases || [] };
     } catch (error: any) {
-      console.error('Failed to restore purchases:', error);
+      if (__DEV__) {
+        console.error('Failed to restore purchases:', error);
+      }
       return { hasPremium: false, purchases: [] };
     }
   }
 
   getProductPrice(productId?: string): string {
     if (!productId) return '$0.99';
-    const product = this.products.find(p => p.productId === productId);
-    return product?.localizedPrice || '$0.99';
+    const product = this.products.find(p => p.productIdentifier === productId);
+    return product?.price || '$0.99';
   }
 
   getInitializationStatus(): boolean {

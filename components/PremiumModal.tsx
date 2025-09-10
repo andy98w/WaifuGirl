@@ -41,7 +41,9 @@ export default function PremiumModal({ visible, onClose, onPurchaseSuccess }: Pr
         );
       }
     } catch (error) {
-      console.error('Purchase error:', error);
+      if (__DEV__) {
+        console.error('Purchase error:', error);
+      }
       Alert.alert(
         'Purchase Error',
         'Something went wrong. Please try again later.',
@@ -72,7 +74,9 @@ export default function PremiumModal({ visible, onClose, onPurchaseSuccess }: Pr
         );
       }
     } catch (error) {
-      console.error('Restore error:', error);
+      if (__DEV__) {
+        console.error('Restore error:', error);
+      }
       Alert.alert(
         'Restore Failed',
         'Unable to restore purchases. Please try again.',

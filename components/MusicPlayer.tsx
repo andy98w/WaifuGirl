@@ -2,7 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Pressable, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Audio } from 'expo-av';
-import { MusicTrack } from '../utils/musicManager';
+import { getMusicAsset } from '../utils/musicAssets';
+
+export interface MusicTrack {
+  name: string;
+  file: string;
+  description: string;
+}
 
 interface MusicPlayerProps {
   tracks: MusicTrack[];
@@ -54,33 +60,15 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
       } catch (error) {
-        // Ignore cleanup errors
+        if (__DEV__) {
+          console.warn('Audio cleanup error:', error);
+        }
       }
       soundRef.current = null;
     }
 
     try {
-      // Map track files to require statements
-      let trackSource;
-      switch (tracks[index].file) {
-        case '1.mp3':
-          trackSource = require('../assets/music/1.mp3');
-          break;
-        case '2.mp3':
-          trackSource = require('../assets/music/2.mp3');
-          break;
-        case '3.mp3':
-          trackSource = require('../assets/music/3.mp3');
-          break;
-        case '4.mp3':
-          trackSource = require('../assets/music/4.mp3');
-          break;
-        case '5.mp3':
-          trackSource = require('../assets/music/5.mp3');
-          break;
-        default:
-          return;
-      }
+      const trackSource = getMusicAsset(tracks[index].file);
 
       const { sound } = await Audio.Sound.createAsync(
         trackSource,
