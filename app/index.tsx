@@ -63,8 +63,8 @@ export default function App() {
   const [hasPurchasedPremium, setHasPurchasedPremium] = useState(false);
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   
-  // Development mode flag - set to true to bypass IAP in development
-  const DEV_MODE_BYPASS_IAP = __DEV__ && true; // Change to false to test IAP flow in dev
+  // Development mode flag - set to false to test IAP flow in dev
+  const DEV_MODE_BYPASS_IAP = __DEV__;
 
   // Initialize IAP and restore purchases
   useEffect(() => {

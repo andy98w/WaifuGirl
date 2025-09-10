@@ -46,8 +46,7 @@
         {
           "microphonePermission": false
         }
-      ],
-      "react-native-iap"
+      ]
     ],
     "experiments": {
       "typedRoutes": true

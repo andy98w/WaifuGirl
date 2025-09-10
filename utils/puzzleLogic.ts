@@ -96,26 +96,6 @@ export function swapPieces(pieces: PuzzlePiece[], pieceId1: number, pieceId2: nu
   return newPieces;
 }
 
-export function movePiece(pieces: PuzzlePiece[], pieceId: number, newRow: number, newCol: number): PuzzlePiece[] {
-  const newPieces = [...pieces];
-  const pieceIndex = newPieces.findIndex(p => p.id === pieceId);
-  
-  if (pieceIndex !== -1) {
-    // Find piece currently at target position
-    const targetPieceIndex = newPieces.findIndex(p => p.row === newRow && p.col === newCol);
-    
-    if (targetPieceIndex !== -1) {
-      // Swap positions
-      const piece = newPieces[pieceIndex];
-      const targetPiece = newPieces[targetPieceIndex];
-      
-      newPieces[pieceIndex] = { ...piece, row: newRow, col: newCol };
-      newPieces[targetPieceIndex] = { ...targetPiece, row: piece.row, col: piece.col };
-    }
-  }
-
-  return newPieces;
-}
 
 export function checkWinCondition(pieces: PuzzlePiece[]): boolean {
   const isWin = pieces.every(piece => 
@@ -131,10 +111,6 @@ export function getPieceAtPosition(pieces: PuzzlePiece[], row: number, col: numb
   return pieces.find(piece => piece.row === row && piece.col === col);
 }
 
-export function getDifficultyGridSize(difficulty: number): number {
-  // Difficulty 1-7 maps to grid sizes 3x3 to 9x9
-  return Math.min(3 + difficulty - 1, 9);
-}
 
 export function getLevelGridDimensions(levelId: number): { rows: number; cols: number } {
   if (levelId >= 1 && levelId <= 4) {

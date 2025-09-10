@@ -15,7 +15,6 @@ import {
   PuzzlePiece as PuzzlePieceType,
   rotatePiece,
   swapPieces,
-  movePiece,
   checkWinCondition,
   getPieceAtPosition
 } from '../utils/puzzleLogic';

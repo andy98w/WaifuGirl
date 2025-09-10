@@ -39,11 +39,8 @@ export class MusicManager {
 
     if (index >= 0 && index < this.tracks.length) {
       try {
-        console.log(`Loading track: ${this.tracks[index].file}`);
-        
         // Load actual audio files
         const trackPath = this.getTrackPath(this.tracks[index].file);
-        console.log('Track path resolved:', trackPath);
         
         const { sound } = await Audio.Sound.createAsync(trackPath, {
           shouldPlay: false,
@@ -52,7 +49,6 @@ export class MusicManager {
         this.sound = sound;
         
         this.currentTrackIndex = index;
-        console.log('Track loaded successfully');
       } catch (error) {
         console.error('Failed to load track:', this.tracks[index].file, error);
         // For now, create a placeholder that won't crash

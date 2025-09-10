@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Pressable, Dimensions } from 'react-native';
+import { View, StyleSheet, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, { 
   useAnimatedStyle, 

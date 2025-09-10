@@ -54,6 +54,7 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
       } catch (error) {
+        // Ignore cleanup errors
       }
       soundRef.current = null;
     }
@@ -168,25 +169,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#666',
     borderRadius: 1,
     transform: [{ rotate: '45deg' }],
-  },
-  trackInfo: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    marginTop: 8,
-    maxWidth: 150,
-  },
-  trackName: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#333',
-    textAlign: 'center',
-  },
-  trackStatus: {
-    fontSize: 10,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 2,
   },
 });
