@@ -4,7 +4,7 @@
     "slug": "waifu-girl",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
+    "icon": "./assets/images/Logo.jpg",
     "scheme": "waifugirl",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -46,7 +46,8 @@
         {
           "microphonePermission": false
         }
-      ]
+      ],
+      "react-native-iap"
     ],
     "experiments": {
       "typedRoutes": true
