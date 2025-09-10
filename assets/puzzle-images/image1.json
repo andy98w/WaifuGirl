@@ -1,0 +1,9 @@
+{
+  "name": "Rainbow Grid",
+  "description": "A colorful rainbow pattern",
+  "colors": [
+    ["#FF0000", "#FF8000", "#FFFF00"],
+    ["#80FF00", "#00FF00", "#00FF80"],
+    ["#0080FF", "#0000FF", "#8000FF"]
+  ]
+}

@@ -1,0 +1,17 @@
+[
+  {
+    "name": "Peaceful Piano",
+    "file": "track1.mp3",
+    "description": "Relaxing piano melody"
+  },
+  {
+    "name": "Upbeat Electronic",
+    "file": "track2.mp3", 
+    "description": "Energetic electronic music"
+  },
+  {
+    "name": "Ambient Sounds",
+    "file": "track3.mp3",
+    "description": "Calming ambient background"
+  }
+]

@@ -1,0 +1,9 @@
+{
+  "name": "Ocean Waves",
+  "description": "Blue gradient ocean pattern",
+  "colors": [
+    ["#E0F6FF", "#B8E6FF", "#87CEEB"],
+    ["#4682B4", "#1E90FF", "#00BFFF"],
+    ["#0080FF", "#0066CC", "#003D7A"]
+  ]
+}

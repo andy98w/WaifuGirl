@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "WaifuGirlTemp",
-    "slug": "WaifuGirlTemp",
+    "name": "Waifu Girl",
+    "slug": "waifu-girl",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "waifugirltemp",
+    "scheme": "waifugirl",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -32,6 +32,12 @@
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
         }
       ]
     ],

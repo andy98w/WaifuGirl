@@ -1,0 +1,199 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { View, StyleSheet, Pressable, Text } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { Audio } from 'expo-av';
+import { MusicTrack } from '../utils/musicManager';
+
+interface MusicPlayerProps {
+  tracks: MusicTrack[];
+}
+
+export default function MusicPlayer({ tracks }: MusicPlayerProps) {
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [musicEnabled, setMusicEnabled] = useState(true);
+  const soundRef = useRef<Audio.Sound | null>(null);
+
+  // Initialize audio
+  useEffect(() => {
+    Audio.setAudioModeAsync({
+      allowsRecordingIOS: false,
+      staysActiveInBackground: true,
+      playsInSilentModeIOS: true,
+      shouldDuckAndroid: true,
+      playThroughEarpieceAndroid: false,
+    });
+    
+    // Load first track if music is enabled
+    if (tracks.length > 0 && musicEnabled) {
+      loadAndPlayTrack(0);
+    }
+
+    return () => {
+      if (soundRef.current) {
+        soundRef.current.unloadAsync();
+      }
+    };
+  }, [musicEnabled]);
+
+  // Stop music when disabled
+  useEffect(() => {
+    if (!musicEnabled && soundRef.current) {
+      soundRef.current.stopAsync();
+      setIsPlaying(false);
+    }
+  }, [musicEnabled]);
+
+  const loadAndPlayTrack = async (index: number) => {
+    if (!musicEnabled) return;
+    
+    console.log('🎵 Loading track:', tracks[index].name);
+    
+    // Stop and unload previous track
+    if (soundRef.current) {
+      try {
+        await soundRef.current.stopAsync();
+        await soundRef.current.unloadAsync();
+        console.log('🎵 Previous track stopped and unloaded');
+      } catch (error) {
+        console.error('🎵 Error stopping previous track:', error);
+      }
+      soundRef.current = null;
+    }
+
+    try {
+      // Map track files to require statements
+      let trackSource;
+      switch (tracks[index].file) {
+        case '1.mp3':
+          trackSource = require('../assets/music/1.mp3');
+          break;
+        case '2.mp3':
+          trackSource = require('../assets/music/2.mp3');
+          break;
+        case '3.mp3':
+          trackSource = require('../assets/music/3.mp3');
+          break;
+        case '4.mp3':
+          trackSource = require('../assets/music/4.mp3');
+          break;
+        case '5.mp3':
+          trackSource = require('../assets/music/5.mp3');
+          break;
+        default:
+          console.error('Unknown track file:', tracks[index].file);
+          return;
+      }
+
+      const { sound } = await Audio.Sound.createAsync(
+        trackSource,
+        { 
+          shouldPlay: true,
+          isLooping: true 
+        }
+      );
+      
+      soundRef.current = sound;
+      setIsPlaying(true);
+      console.log('🎵 Track playing:', tracks[index].name);
+    } catch (error) {
+      console.error('🎵 Failed to load track:', error);
+    }
+  };
+
+  const handleNextTrack = () => {
+    if (!musicEnabled) return;
+    
+    console.log('🎵 BUTTON PRESSED - switching track');
+    
+    const nextIndex = (currentTrackIndex + 1) % tracks.length;
+    console.log('🎵 Switching from', tracks[currentTrackIndex]?.name, 'to', tracks[nextIndex]?.name);
+    
+    setCurrentTrackIndex(nextIndex);
+    loadAndPlayTrack(nextIndex);
+  };
+
+  const handleLongPress = () => {
+    console.log('🎵 LONG PRESS - toggling music enabled');
+    setMusicEnabled(!musicEnabled);
+  };
+
+  return (
+    <View style={styles.container}>
+      <Pressable 
+        style={[styles.musicButton, !musicEnabled && styles.musicButtonDisabled]}
+        onPress={handleNextTrack}
+        onLongPress={handleLongPress}
+      >
+        {musicEnabled ? (
+          <Ionicons 
+            name="musical-note" 
+            size={24} 
+            color="#ffffff" 
+          />
+        ) : (
+          <View style={styles.disabledIconContainer}>
+            <Ionicons 
+              name="musical-note" 
+              size={24} 
+              color="#666" 
+            />
+            <View style={styles.slashOverlay} />
+          </View>
+        )}
+      </Pressable>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 70,
+    right: 20,
+    alignItems: 'flex-end',
+    zIndex: 1000,
+  },
+  musicButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+    height: 50,
+  },
+  musicButtonDisabled: {
+    opacity: 0.5,
+  },
+  disabledIconContainer: {
+    position: 'relative',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  slashOverlay: {
+    position: 'absolute',
+    width: 28,
+    height: 2,
+    backgroundColor: '#666',
+    borderRadius: 1,
+    transform: [{ rotate: '45deg' }],
+  },
+  trackInfo: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginTop: 8,
+    maxWidth: 150,
+  },
+  trackName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+  },
+  trackStatus: {
+    fontSize: 10,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 2,
+  },
+});

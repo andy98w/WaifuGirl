@@ -1,0 +1,9 @@
+{
+  "name": "Sunset",
+  "description": "Warm sunset colors",
+  "colors": [
+    ["#FFE4B5", "#FFA500", "#FF6347"],
+    ["#FF4500", "#DC143C", "#B22222"],
+    ["#8B0000", "#4B0082", "#2E0054"]
+  ]
+}
