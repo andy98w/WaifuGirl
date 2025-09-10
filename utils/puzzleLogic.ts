@@ -124,19 +124,6 @@ export function checkWinCondition(pieces: PuzzlePiece[]): boolean {
     piece.rotation === 0
   );
   
-  if (!isWin) {
-    console.log('🧩 Win check failed:');
-    pieces.forEach(piece => {
-      const positionCorrect = piece.row === piece.correctRow && piece.col === piece.correctCol;
-      const rotationCorrect = piece.rotation === 0;
-      if (!positionCorrect || !rotationCorrect) {
-        console.log(`Piece ${piece.id}: pos(${piece.row},${piece.col}) should be (${piece.correctRow},${piece.correctCol}), rot=${piece.rotation} - pos:${positionCorrect}, rot:${rotationCorrect}`);
-      }
-    });
-  } else {
-    console.log('🎉 PUZZLE COMPLETE!');
-  }
-  
   return isWin;
 }
 

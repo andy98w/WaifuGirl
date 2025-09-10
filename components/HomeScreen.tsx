@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable, Text, Dimensions, Modal } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable, Text, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { Level } from '../utils/levels';
+import SettingsModal from './SettingsModal';
 
 const { width: screenWidth } = Dimensions.get('window');
 const COLUMNS = 4;
@@ -13,42 +14,83 @@ const CARD_SIZE = (screenWidth - (CARD_MARGIN * (COLUMNS + 1))) / COLUMNS;
 interface HomeScreenProps {
   onLevelSelect: (level: Level, testMode?: boolean) => void;
   levels: Level[];
+  hasPurchasedPremium: boolean;
+  onPurchaseRestored?: () => void;
 }
 
-export default function HomeScreen({ onLevelSelect, levels }: HomeScreenProps) {
+export default function HomeScreen({ onLevelSelect, levels, hasPurchasedPremium, onPurchaseRestored }: HomeScreenProps) {
   const [testMode, setTestMode] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const handleLevelPress = (level: Level) => {
-    onLevelSelect(level, testMode);
+    // In test mode, allow access to any level
+    // In regular mode, only allow access to unlocked levels
+    if (testMode || level.unlocked) {
+      onLevelSelect(level, testMode);
+    }
   };
 
-  const renderLevel = ({ item }: { item: Level }) => (
-    <Pressable
-      style={({ pressed }) => [
-        styles.levelCard,
-        pressed && styles.levelCardPressed,
-        !item.unlocked && styles.levelCardLocked
-      ]}
-      onPress={() => item.unlocked && handleLevelPress(item)}
-      disabled={!item.unlocked}
-    >
-      {item.completed ? (
-        <Text style={styles.checkmark}>✓</Text>
-      ) : (
-        <Text style={styles.levelNumber}>{item.id}</Text>
-      )}
-      {item.completed && item.bestMoves && (
-        <View style={styles.recordBadge}>
-          <Text style={styles.recordText}>R:{item.bestMoves}</Text>
-        </View>
-      )}
-    </Pressable>
-  );
+  const renderLevel = ({ item }: { item: Level }) => {
+    const isAccessible = testMode || (item.unlocked && (!item.requiresPurchase || hasPurchasedPremium));
+    const isPremiumLocked = item.requiresPurchase && !hasPurchasedPremium && !testMode;
+    
+    return (
+      <Pressable
+        style={({ pressed }) => [
+          styles.levelCard,
+          pressed && styles.levelCardPressed,
+          !isAccessible && styles.levelCardLocked
+        ]}
+        onPress={() => handleLevelPress(item)}
+        disabled={!isAccessible && !isPremiumLocked}
+      >
+        {item.completed ? (
+          <>
+            <Image
+              source={item.image}
+              style={styles.previewImage}
+              contentFit="cover"
+            />
+            <View style={styles.completedOverlay}>
+              <Text style={styles.checkmark}>✓</Text>
+            </View>
+            {item.bestMoves && (
+              <View style={styles.recordBadge}>
+                <Text style={styles.recordText}>R:{item.bestMoves}</Text>
+              </View>
+            )}
+          </>
+        ) : isPremiumLocked ? (
+          <Ionicons name="lock-closed" size={24} color="#666" />
+        ) : !isAccessible ? (
+          <Ionicons name="lock-closed" size={24} color="#666" />
+        ) : (
+          <Text style={styles.levelNumber}>{item.id}</Text>
+        )}
+      </Pressable>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
+      <Pressable style={styles.settingsButton} onPress={() => setShowSettings(true)}>
+        <Ionicons name="settings" size={24} color="#ffffff" />
+      </Pressable>
+      
       <View style={styles.header}>
         <Text style={styles.title}>Waifu Girl</Text>
+      </View>
+      
+      <FlatList
+        data={levels}
+        renderItem={renderLevel}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={COLUMNS}
+        contentContainerStyle={styles.grid}
+        columnWrapperStyle={styles.row}
+      />
+
+      <View style={styles.footer}>
         <Pressable 
           style={[styles.testModeButton, testMode && styles.testModeActive]} 
           onPress={() => setTestMode(!testMode)}
@@ -63,14 +105,11 @@ export default function HomeScreen({ onLevelSelect, levels }: HomeScreenProps) {
           </Text>
         </Pressable>
       </View>
-      
-      <FlatList
-        data={levels}
-        renderItem={renderLevel}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={COLUMNS}
-        contentContainerStyle={styles.grid}
-        columnWrapperStyle={styles.row}
+
+      <SettingsModal
+        visible={showSettings}
+        onClose={() => setShowSettings(false)}
+        onPurchaseRestored={onPurchaseRestored || (() => {})}
       />
 
     </SafeAreaView>
@@ -86,9 +125,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 60,
     paddingBottom: 30,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     paddingHorizontal: 20,
+  },
+  settingsButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
   },
   title: {
     fontSize: 36,
@@ -131,8 +178,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   checkmark: {
-    color: '#4CAF50',
-    fontSize: 48,
+    color: '#ffffff',
+    fontSize: 12,
     fontWeight: 'bold',
   },
   recordBadge: {
@@ -168,5 +215,30 @@ const styles = StyleSheet.create({
   },
   testModeTextActive: {
     color: '#4CAF50',
+  },
+  footer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 8,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  completedOverlay: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: 'rgba(76, 175, 80, 0.9)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

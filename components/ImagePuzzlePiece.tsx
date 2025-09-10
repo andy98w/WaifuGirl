@@ -43,7 +43,6 @@ export default function ImagePuzzlePiece({
   React.useEffect(() => {
     if (currentPieceId.current !== piece.id) {
       // New piece (after swap) - sync visual rotation immediately without animation
-      console.log(`🔄 Piece swap: ${currentPieceId.current} -> ${piece.id}, rotation: ${piece.rotation}`);
       visualRotation.value = piece.rotation;
       totalRotations.current = piece.rotation / 90;
       currentPieceId.current = piece.id;
@@ -51,7 +50,6 @@ export default function ImagePuzzlePiece({
     } else if (currentPieceId.current === piece.id && piece.rotation !== lastLogicalRotation.current) {
       // Same piece, rotation changed (user rotated) - animate the change
       const rotationDiff = piece.rotation - lastLogicalRotation.current;
-      console.log(`🔄 Piece ${piece.id} rotated: ${lastLogicalRotation.current} -> ${piece.rotation} (diff: ${rotationDiff})`);
       
       // Handle wrap-around from 270 to 0
       if (rotationDiff === -270) {
@@ -154,7 +152,7 @@ export default function ImagePuzzlePiece({
 
 const styles = StyleSheet.create({
   piece: {
-    borderWidth: 2,
+    borderWidth: 1,
     borderColor: '#333333',
     borderRadius: 0,
     overflow: 'hidden',

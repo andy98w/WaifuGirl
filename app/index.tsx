@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, StatusBar, Pressable, Text } from 'react-native';
+import { View, StyleSheet, StatusBar, Pressable, Text, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, { 
+  SlideInRight, 
+  SlideOutLeft,
+  SlideInLeft,
+  SlideOutRight 
+} from 'react-native-reanimated';
 import PuzzleGrid from '@/components/PuzzleGrid';
 import MusicPlayer from '@/components/MusicPlayer';
 import HomeScreen from '@/components/HomeScreen';
-import TestModeView from '@/components/TestModeView';
+import PremiumModal from '@/components/PremiumModal';
+import { Image } from 'expo-image';
 import { 
   createPuzzle, 
   PuzzleState,
-  getDifficultyGridSize,
   getLevelGridDimensions
 } from '@/utils/puzzleLogic';
 import { MusicTrack } from '@/utils/musicManager';
 import { Level, levels } from '@/utils/levels';
+import { iapManager } from '@/utils/inAppPurchase';
 
 
 const musicTracks: MusicTrack[] = [
@@ -45,30 +52,60 @@ const musicTracks: MusicTrack[] = [
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'home' | 'puzzle'>('home');
+  const [currentScreen, setCurrentScreen] = useState<'home' | 'puzzle' | 'loading'>('home');
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
   const [puzzleState, setPuzzleState] = useState<PuzzleState | null>(null);
   const [gameState, setGameState] = useState<'playing' | 'completed'>('playing');
   const [levelData, setLevelData] = useState(levels);
   const [isTestMode, setIsTestMode] = useState(false);
+  const [levelCompletionStates, setLevelCompletionStates] = useState<{[key: number]: {gameState: 'playing' | 'completed', puzzleState: PuzzleState | null}}>({});
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [hasPurchasedPremium, setHasPurchasedPremium] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  
+  // Development mode flag - set to true to bypass IAP in development
+  const DEV_MODE_BYPASS_IAP = __DEV__ && true; // Change to false to test IAP flow in dev
+
+  // Initialize IAP and restore purchases
+  useEffect(() => {
+    const initializeIAP = async () => {
+      try {
+        await iapManager.initialize();
+        const result = await iapManager.restorePurchases();
+        if (result.hasPremium) {
+          setHasPurchasedPremium(true);
+        }
+      } catch (error) {
+        console.error('Failed to initialize IAP:', error);
+      }
+    };
+    
+    initializeIAP();
+    
+    return () => {
+      iapManager.cleanup();
+    };
+  }, []);
 
   // Initialize puzzle when a level is selected
   useEffect(() => {
-    if (selectedLevel && !isTestMode) {
-      initializePuzzle();
-    } else if (selectedLevel && isTestMode) {
-      // In test mode, show completed state
-      setGameState('completed');
-      setPuzzleState(null); // Don't show puzzle pieces in test mode
+    if (selectedLevel) {
+      // Check if this level has a saved completion state
+      const savedState = levelCompletionStates[selectedLevel.id];
+      if (savedState) {
+        setGameState(savedState.gameState);
+        setPuzzleState(savedState.puzzleState);
+      } else {
+        initializePuzzle();
+      }
     }
-  }, [selectedLevel, isTestMode]);
+  }, [selectedLevel]);
 
   const initializePuzzle = () => {
     if (!selectedLevel) return;
     
     const { rows, cols } = getLevelGridDimensions(selectedLevel.id);
     
-    // Create a simple color grid for the puzzle logic (colors won't be used for display)
     const colors = [];
     for (let row = 0; row < rows; row++) {
       const colorRow = [];
@@ -81,6 +118,15 @@ export default function App() {
     const newPuzzle = createPuzzle(colors, rows, cols);
     setPuzzleState(newPuzzle);
     setGameState('playing');
+    
+    // Clear the saved completion state for this level since we're restarting
+    if (selectedLevel) {
+      setLevelCompletionStates(prev => {
+        const newStates = { ...prev };
+        delete newStates[selectedLevel.id];
+        return newStates;
+      });
+    }
   };
 
   const handlePuzzleUpdate = (newState: PuzzleState) => {
@@ -92,7 +138,36 @@ export default function App() {
     
     setGameState('completed');
     
-    // Update level completion data
+    // Save completion state for this level
+    setLevelCompletionStates(prev => ({
+      ...prev,
+      [selectedLevel.id]: {
+        gameState: 'completed',
+        puzzleState: puzzleState
+      }
+    }));
+    
+    // Check if user just completed level 12 and hasn't purchased premium
+    if (selectedLevel.id === 12 && !hasPurchasedPremium && !DEV_MODE_BYPASS_IAP) {
+      setTimeout(() => {
+        Alert.alert(
+          '🎉 Congratulations!',
+          'You\'ve completed all free levels! Unlock levels 13-20 to continue your puzzle adventure with even more challenging and beautiful artwork.',
+          [
+            {
+              text: 'Maybe Later',
+              style: 'cancel'
+            },
+            {
+              text: 'Unlock Premium Levels',
+              onPress: () => setShowPremiumModal(true)
+            }
+          ]
+        );
+      }, 1500); // Show after win animation
+    }
+    
+    // Update level completion data and unlock next level
     const updatedLevels = levelData.map(level => {
       if (level.id === selectedLevel.id) {
         const newBestMoves = level.bestMoves ? Math.min(level.bestMoves, puzzleState.moves) : puzzleState.moves;
@@ -102,16 +177,43 @@ export default function App() {
           bestMoves: newBestMoves
         };
       }
+      // Unlock next level when current level is completed
+      if (level.id === selectedLevel.id + 1) {
+        return {
+          ...level,
+          unlocked: true
+        };
+      }
       return level;
     });
     
     setLevelData(updatedLevels);
   };
 
-  const handleLevelSelect = (level: Level, testMode = false) => {
+  const handleLevelSelect = async (level: Level, testMode = false) => {
+    // Check if level requires premium purchase (unless in test mode or dev mode)
+    if (!testMode && level.requiresPurchase && !hasPurchasedPremium && !DEV_MODE_BYPASS_IAP) {
+      setShowPremiumModal(true);
+      return;
+    }
+    
     setSelectedLevel(level);
-    setIsTestMode(testMode);
-    setCurrentScreen('puzzle');
+    setIsTestMode(false); // Never set test mode, always play normally
+    setImageLoaded(false);
+    setCurrentScreen('loading');
+    
+    try {
+      // Preload the image using Expo Image
+      await Image.prefetch(level.image);
+      setImageLoaded(true);
+      setCurrentScreen('puzzle');
+    } catch (error) {
+      // If preload fails, still proceed after a short delay
+      setTimeout(() => {
+        setImageLoaded(true);
+        setCurrentScreen('puzzle');
+      }, 300);
+    }
   };
 
   const handleBackToHome = () => {
@@ -127,8 +229,14 @@ export default function App() {
     
     const nextLevel = levelData.find(level => level.id === selectedLevel.id + 1);
     if (nextLevel) {
-      setSelectedLevel(nextLevel);
-      setGameState('playing');
+      // Temporarily go back to home to create transition effect
+      setCurrentScreen('home');
+      
+      // After a brief delay, go to next level
+      setTimeout(() => {
+        setSelectedLevel(nextLevel);
+        setCurrentScreen('puzzle');
+      }, 150);
     } else {
       // No more levels, go back to home
       handleBackToHome();
@@ -141,40 +249,71 @@ export default function App() {
       <MusicPlayer tracks={musicTracks} />
       
       {currentScreen === 'home' ? (
-        <HomeScreen onLevelSelect={handleLevelSelect} levels={levelData} />
+        <Animated.View 
+          key="home"
+          entering={SlideInLeft.duration(300)}
+          exiting={SlideOutLeft.duration(300)}
+          style={styles.screenContainer}
+        >
+          <HomeScreen 
+            onLevelSelect={handleLevelSelect} 
+            levels={levelData} 
+            hasPurchasedPremium={hasPurchasedPremium}
+            onPurchaseRestored={() => setHasPurchasedPremium(true)}
+          />
+        </Animated.View>
+      ) : currentScreen === 'loading' ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4CAF50" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
       ) : (
-        <SafeAreaView style={styles.container}>
-          <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={handleBackToHome}>
-              <Ionicons name="arrow-back" size={28} color="#ffffff" />
-            </Pressable>
-          </View>
-          
-          {isTestMode && selectedLevel ? (
-            <TestModeView
-              imageSource={selectedLevel.image}
-              levelId={selectedLevel.id}
-            />
-          ) : puzzleState && selectedLevel && (
-            <PuzzleGrid
-              puzzleState={puzzleState}
-              onPuzzleUpdate={handlePuzzleUpdate}
-              onWin={handleWin}
-              imageSource={selectedLevel.image}
-              gameState={gameState}
-              onNextLevel={handleNextLevel}
-              onPlayAgain={initializePuzzle}
-              hasNextLevel={selectedLevel.id < levelData.length}
-              levelId={selectedLevel.id}
-            />
-          )}
-        </SafeAreaView>
+        <Animated.View 
+          key="puzzle"
+          entering={SlideInRight.duration(300)}
+          exiting={SlideOutRight.duration(300)}
+          style={styles.screenContainer}
+        >
+          <SafeAreaView style={styles.container}>
+            <View style={styles.header}>
+              <Pressable style={styles.backButton} onPress={handleBackToHome}>
+                <Ionicons name="arrow-back" size={28} color="#ffffff" />
+              </Pressable>
+            </View>
+            
+            {puzzleState && selectedLevel && (
+              <PuzzleGrid
+                puzzleState={puzzleState}
+                onPuzzleUpdate={handlePuzzleUpdate}
+                onWin={handleWin}
+                imageSource={selectedLevel.image}
+                gameState={gameState}
+                onNextLevel={handleNextLevel}
+                onPlayAgain={initializePuzzle}
+                hasNextLevel={selectedLevel.id < levelData.length}
+                levelId={selectedLevel.id}
+              />
+            )}
+          </SafeAreaView>
+        </Animated.View>
       )}
+      
+      <PremiumModal
+        visible={showPremiumModal}
+        onClose={() => setShowPremiumModal(false)}
+        onPurchaseSuccess={() => {
+          setHasPurchasedPremium(true);
+          setShowPremiumModal(false);
+        }}
+      />
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
+  screenContainer: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     backgroundColor: '#1a1a1a',
@@ -193,8 +332,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  loading: {
+  loadingContainer: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginTop: 16,
   },
 });

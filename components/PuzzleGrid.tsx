@@ -21,8 +21,8 @@ import {
 } from '../utils/puzzleLogic';
 
 const { width: screenWidth } = Dimensions.get('window');
-const GRID_MARGIN = 10;
-const GRID_PADDING = 10;
+const GRID_MARGIN = 2;
+const GRID_PADDING = 5;
 
 interface PuzzleGridProps {
   puzzleState: PuzzleState;
@@ -47,6 +47,12 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
       puzzleOpacity.value = 1;
       imageOpacity.value = 0;
       imageScale.value = 1.1;
+    } else if (gameState === 'completed') {
+      // If returning to a completed level, show the completed image immediately
+      setShowWinAnimation(true);
+      puzzleOpacity.value = 0;
+      imageOpacity.value = 1;
+      imageScale.value = 1;
     }
   }, [gameState]);
 
@@ -54,7 +60,7 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
   const gridCols = puzzleState.gridCols;
   const pieceSize = Math.min(
     (screenWidth - GRID_MARGIN * 2 - GRID_PADDING * 2) / gridCols,
-    (screenWidth * 1.2) / gridRows // Increased from 0.8 to 1.2 for larger puzzles
+    (screenWidth * 1.4) / gridRows // Increased from 1.2 to 1.4 for even larger puzzles
   );
 
   // Animation values for win sequence
@@ -256,25 +262,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 40,
+    paddingTop: 20,
     paddingBottom: 40,
     backgroundColor: '#1a1a1a',
   },
   header: {
     width: '100%',
     paddingHorizontal: 20,
-    marginBottom: 10,
+    marginBottom: 20,
     alignItems: 'center',
   },
   movesText: {
     fontSize: 18,
     fontWeight: 'bold',
     color: '#ffffff',
-  },
-  sizeText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#666',
   },
   grid: {
     position: 'relative',
@@ -330,11 +331,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 12,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
 });

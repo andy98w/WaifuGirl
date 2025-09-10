@@ -47,16 +47,13 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
   const loadAndPlayTrack = async (index: number) => {
     if (!musicEnabled) return;
     
-    console.log('🎵 Loading track:', tracks[index].name);
     
     // Stop and unload previous track
     if (soundRef.current) {
       try {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
-        console.log('🎵 Previous track stopped and unloaded');
       } catch (error) {
-        console.error('🎵 Error stopping previous track:', error);
       }
       soundRef.current = null;
     }
@@ -81,7 +78,6 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
           trackSource = require('../assets/music/5.mp3');
           break;
         default:
-          console.error('Unknown track file:', tracks[index].file);
           return;
       }
 
@@ -95,26 +91,21 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
       
       soundRef.current = sound;
       setIsPlaying(true);
-      console.log('🎵 Track playing:', tracks[index].name);
     } catch (error) {
-      console.error('🎵 Failed to load track:', error);
     }
   };
 
   const handleNextTrack = () => {
     if (!musicEnabled) return;
     
-    console.log('🎵 BUTTON PRESSED - switching track');
     
     const nextIndex = (currentTrackIndex + 1) % tracks.length;
-    console.log('🎵 Switching from', tracks[currentTrackIndex]?.name, 'to', tracks[nextIndex]?.name);
     
     setCurrentTrackIndex(nextIndex);
     loadAndPlayTrack(nextIndex);
   };
 
   const handleLongPress = () => {
-    console.log('🎵 LONG PRESS - toggling music enabled');
     setMusicEnabled(!musicEnabled);
   };
 
@@ -149,9 +140,11 @@ export default function MusicPlayer({ tracks }: MusicPlayerProps) {
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    top: 70,
+    top: 60,
     right: 20,
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    height: 40,
+    justifyContent: 'center',
     zIndex: 1000,
   },
   musicButton: {
