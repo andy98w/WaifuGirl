@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { View, StyleSheet, Dimensions, Text, Pressable, Share } from 'react-native';
+import { View, StyleSheet, Dimensions, Text, Pressable, Share, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,9 +19,10 @@ import {
   getPieceAtPosition
 } from '../utils/puzzleLogic';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 const GRID_MARGIN = 2;
 const GRID_PADDING = 5;
+const isTablet = Platform.OS === 'ios' && (screenWidth >= 768 || screenHeight >= 1024);
 
 interface PuzzleGridProps {
   puzzleState: PuzzleState;
@@ -57,9 +58,20 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
 
   const gridRows = puzzleState.gridRows;
   const gridCols = puzzleState.gridCols;
+  
+  // Calculate max available space for the puzzle
+  const maxPuzzleHeight = isTablet 
+    ? screenHeight * 0.75  // Use 75% of height on iPad (increased from 60%)
+    : screenHeight * 0.7; // Use 70% of height on iPhone
+  
+  const maxPuzzleWidth = isTablet
+    ? screenWidth * 0.85  // Use 85% of width on iPad
+    : screenWidth - GRID_MARGIN * 2 - GRID_PADDING * 2;
+  
+  // Calculate piece size based on both width and height constraints
   const pieceSize = Math.min(
-    (screenWidth - GRID_MARGIN * 2 - GRID_PADDING * 2) / gridCols,
-    (screenWidth * 1.4) / gridRows // Increased from 1.2 to 1.4 for even larger puzzles
+    maxPuzzleWidth / gridCols,
+    maxPuzzleHeight / gridRows
   );
 
   // Animation values for win sequence
@@ -223,7 +235,7 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
             {renderGrid()}
           </Animated.View>
           
-          {showWinAnimation && (
+          {(showWinAnimation || gameState === 'completed') && (
             <Animated.View style={[styles.imageLayer, imageAnimatedStyle]}>
               <Image
                 source={imageSource}

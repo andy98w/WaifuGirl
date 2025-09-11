@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, FlatList, Pressable, Text, Dimensions } from 'react-native';
+import { View, StyleSheet, FlatList, Pressable, Text, Dimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,9 +7,14 @@ import { Level } from '../utils/levels';
 import SettingsModal from './SettingsModal';
 
 const { width: screenWidth } = Dimensions.get('window');
-const COLUMNS = 4;
-const CARD_MARGIN = 8;
-const CARD_SIZE = (screenWidth - (CARD_MARGIN * (COLUMNS + 1))) / COLUMNS;
+const isTablet = Platform.OS === 'ios' && screenWidth >= 768;
+const COLUMNS = 4; // Always 4 columns on all devices
+const CARD_MARGIN = 8; // Same spacing on all devices
+const MAX_CARD_SIZE = isTablet ? 180 : 100; // Larger cards on iPad since keeping 4 columns
+const CARD_SIZE = Math.min(
+  (screenWidth - (CARD_MARGIN * (COLUMNS + 1))) / COLUMNS,
+  MAX_CARD_SIZE
+);
 
 interface HomeScreenProps {
   onLevelSelect: (level: Level) => void;
@@ -80,6 +85,7 @@ export default function HomeScreen({ onLevelSelect, levels, hasPurchasedPremium,
       </View>
       
       <FlatList
+        key={`flatlist-columns-${COLUMNS}`} // Force re-render if columns change
         data={levels}
         renderItem={renderLevel}
         keyExtractor={(item) => item.id.toString()}
@@ -130,12 +136,13 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   row: {
-    justifyContent: 'space-evenly',
+    justifyContent: 'center',
+    gap: isTablet ? 8 : 4, // Smaller gap between columns on iPad
   },
   levelCard: {
     width: CARD_SIZE,
     height: CARD_SIZE,
-    margin: CARD_MARGIN / 2,
+    margin: isTablet ? 2 : CARD_MARGIN / 2, // Much smaller margin on iPad
     borderRadius: 8,
     backgroundColor: '#2a2a2a',
     elevation: 3,
