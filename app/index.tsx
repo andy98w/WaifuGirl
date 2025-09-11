@@ -104,8 +104,11 @@ export default function App() {
 
   const initializePuzzle = () => {
     if (!selectedLevel) return;
-    
-    const { rows, cols } = getLevelGridDimensions(selectedLevel.id);
+    initializePuzzleForLevel(selectedLevel);
+  };
+
+  const initializePuzzleForLevel = (level: Level) => {
+    const { rows, cols } = getLevelGridDimensions(level.id);
     
     const colors = [];
     for (let row = 0; row < rows; row++) {
@@ -121,13 +124,11 @@ export default function App() {
     setGameState('playing');
     
     // Clear the saved completion state for this level since we're restarting
-    if (selectedLevel) {
-      setLevelCompletionStates(prev => {
-        const newStates = { ...prev };
-        delete newStates[selectedLevel.id];
-        return newStates;
-      });
-    }
+    setLevelCompletionStates(prev => {
+      const newStates = { ...prev };
+      delete newStates[level.id];
+      return newStates;
+    });
   };
 
   const handlePuzzleUpdate = (newState: PuzzleState) => {
@@ -228,14 +229,9 @@ export default function App() {
     
     const nextLevel = levelData.find(level => level.id === selectedLevel.id + 1);
     if (nextLevel) {
-      // Temporarily go back to home to create transition effect
-      setCurrentScreen('home');
-      
-      // After a brief delay, go to next level
-      setTimeout(() => {
-        setSelectedLevel(nextLevel);
-        setCurrentScreen('puzzle');
-      }, 150);
+      // Directly transition to next level
+      setSelectedLevel(nextLevel);
+      initializePuzzleForLevel(nextLevel);
     } else {
       // No more levels, go back to home
       handleBackToHome();

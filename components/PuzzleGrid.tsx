@@ -49,9 +49,9 @@ export default function PuzzleGrid({ puzzleState, onPuzzleUpdate, onWin, imageSo
     } else if (gameState === 'completed') {
       // If returning to a completed level, show the completed image immediately
       setShowWinAnimation(true);
-      puzzleOpacity.value = 0;
-      imageOpacity.value = 1;
-      imageScale.value = 1;
+      puzzleOpacity.value = withTiming(0, { duration: 0 });
+      imageOpacity.value = withTiming(1, { duration: 0 });
+      imageScale.value = withTiming(1, { duration: 0 });
     }
   }, [gameState]);
 
