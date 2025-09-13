@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, StatusBar, Pressable, Text, ActivityIndicator, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { 
@@ -64,6 +65,54 @@ export default function App() {
   
   // Development mode flag - set to false to test IAP flow in dev
   const DEV_MODE_BYPASS_IAP = __DEV__;
+
+  // Save progress to persistent storage
+  const saveProgress = async (levelDataToSave: Level[], completionStates: any) => {
+    try {
+      await AsyncStorage.setItem('levelProgress', JSON.stringify(levelDataToSave));
+      await AsyncStorage.setItem('levelCompletionStates', JSON.stringify(completionStates));
+      if (__DEV__) {
+        console.log('Progress saved successfully');
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to save progress:', error);
+      }
+    }
+  };
+
+  // Load progress from persistent storage
+  const loadProgress = async () => {
+    try {
+      const savedLevelData = await AsyncStorage.getItem('levelProgress');
+      const savedCompletionStates = await AsyncStorage.getItem('levelCompletionStates');
+      
+      if (savedLevelData) {
+        const parsedLevelData = JSON.parse(savedLevelData);
+        setLevelData(parsedLevelData);
+        if (__DEV__) {
+          console.log('Level data loaded from storage');
+        }
+      }
+      
+      if (savedCompletionStates) {
+        const parsedCompletionStates = JSON.parse(savedCompletionStates);
+        setLevelCompletionStates(parsedCompletionStates);
+        if (__DEV__) {
+          console.log('Completion states loaded from storage');
+        }
+      }
+    } catch (error) {
+      if (__DEV__) {
+        console.error('Failed to load progress:', error);
+      }
+    }
+  };
+
+  // Load progress on app start
+  useEffect(() => {
+    loadProgress();
+  }, []);
 
   // Initialize IAP and restore purchases
   useEffect(() => {
@@ -141,13 +190,14 @@ export default function App() {
     setGameState('completed');
     
     // Save completion state for this level
-    setLevelCompletionStates(prev => ({
-      ...prev,
+    const newCompletionStates = {
+      ...levelCompletionStates,
       [selectedLevel.id]: {
         gameState: 'completed',
         puzzleState: puzzleState
       }
-    }));
+    };
+    setLevelCompletionStates(newCompletionStates);
     
     // Check if user just completed level 12 and hasn't purchased premium
     if (selectedLevel.id === 12 && !hasPurchasedPremium && !DEV_MODE_BYPASS_IAP) {
@@ -190,6 +240,9 @@ export default function App() {
     });
     
     setLevelData(updatedLevels);
+    
+    // Save progress to storage
+    saveProgress(updatedLevels, newCompletionStates);
   };
 
   const handleLevelSelect = async (level: Level) => {
